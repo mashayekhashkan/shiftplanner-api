@@ -19,7 +19,7 @@ import java.util.UUID;
 public class WeeklyRequirement {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne(optional = false)
     @JoinColumn(name = "store_id", nullable = false)
@@ -35,4 +35,7 @@ public class WeeklyRequirement {
     @Max(10)
     @Column(name = "required_headcount", nullable = false)
     private int requiredHeadcount;
+    public int getRequiredHeadcount() {
+        return requiredHeadcount;
+    }
 }
