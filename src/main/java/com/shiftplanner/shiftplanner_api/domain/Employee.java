@@ -31,4 +31,9 @@ public class Employee {
     private boolean onlyEarlyShift;
     @Column(nullable = false)
     private boolean onlyLateShift;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
+    @Column(nullable = false)
+    private boolean active = true;
 }

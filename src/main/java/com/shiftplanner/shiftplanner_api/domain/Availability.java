@@ -20,7 +20,7 @@ public class Availability {
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne(optional = false)
     @JoinColumn(name = "employee_id", nullable = false)

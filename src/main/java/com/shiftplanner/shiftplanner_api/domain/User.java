@@ -20,7 +20,7 @@ public class User {
         MANAGER, ADMIN
     }
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @Column(nullable = false, unique = true, length = 255)
     private String email;

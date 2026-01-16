@@ -18,7 +18,7 @@ import java.util.UUID;
 public class EmployeeBlockDay {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne(optional = false)
     @JoinColumn(nullable = false)
