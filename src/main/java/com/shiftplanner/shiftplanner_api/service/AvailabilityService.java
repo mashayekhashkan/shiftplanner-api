@@ -27,15 +27,15 @@ public class AvailabilityService {
     }
 
     public boolean isAktive (Employee employee, DayOfWeek dayOfWeek, Availability.ShiftCode shiftCode) {
-        return repository.existsByEmployeeAndDayOfWeekAndAvailableTreu(employee, dayOfWeek, shiftCode);
+        return repository.existsByEmployeeAndDayOfWeekAndShiftCodeAndAvailable(employee, dayOfWeek, shiftCode, true);
     }
 
     public boolean isEmployeeAvailable (Employee employee, LocalDate date, Availability.ShiftCode shiftCode) {
 
-        if(blockDayRepository.existsBayEmployeeAndDate(employee,date)) {
+        if(blockDayRepository.existsByEmployeeAndDate(employee,date)) {
             return false;
         }
         DayOfWeek dayOfWeek = date.getDayOfWeek();
-        return repository.existsByEmployeeAndDayOfWeekAndAvailableTreu(employee, dayOfWeek, shiftCode);
+        return repository.existsByEmployeeAndDayOfWeekAndShiftCodeAndAvailable(employee, dayOfWeek, shiftCode, true);
     }
 }

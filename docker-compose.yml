@@ -9,12 +9,14 @@ services:
       POSTGRES_USER: shiftplanner
       POSTGRES_PASSWORD: shiftplanner
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   app:
     build: .
     container_name: shiftplanner-app
     depends_on:
       - db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
     ports:
-      - "8080:8080"
+      - "8686:8686"

@@ -15,7 +15,7 @@ import java.util.UUID;
 @Repository
 public interface WeeklyRequirementRepository extends JpaRepository<WeeklyRequirement, UUID> {
 
-    List<WeeklyRequirement> findStoreAndWeekStart(Store store, LocalDate weekStart);
+    List<WeeklyRequirement> findByStoreAndWeekStart(Store store, LocalDate weekStart);
     Optional<WeeklyRequirement> findByStoreAndWeekStartAndDayOfWeekAndShiftCode(
             Store store,
             LocalDate weekStart,   // ← DAS ist kein DayOfWeek

@@ -22,7 +22,7 @@ public class EmployeeBlockDay {
     private UUID id;
     @ManyToOne(optional = false)
     @JoinColumn(nullable = false)
-    private Employee employee_id;
+    private Employee employee;
     @Column(nullable = false)
     private LocalDate date;
 }

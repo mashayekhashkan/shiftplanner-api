@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface EmployeeBlockDayRepository extends JpaRepository<EmployeeBlockDay, UUID> {
 
-    boolean existsBayEmployeeAndDate(Employee employee, LocalDate date);
+    boolean existsByEmployeeAndDate(Employee employee, LocalDate date);
 }

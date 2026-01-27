@@ -13,5 +13,5 @@ import java.util.UUID;
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     List<Employee> findByFirstNameIgnoreCaseOrLastNameIgnoreCase(String firstName, String lastName);
-    List<Employee> findByStoreAndAktiveTreu(Store store);
+    List<Employee> findByStoreAndActiveTrue(Store store);
 }
