@@ -20,7 +20,7 @@ public class WeeklyRequirementService {
     }
 
     public List<WeeklyRequirement> getForWork (Store store, LocalDate weekStart) {
-        return repository.findStoreAndWeekStart(store, weekStart);
+        return repository.findByStoreAndWeekStart(store, weekStart);
     }
 
     public int getRequiredHeadcount(

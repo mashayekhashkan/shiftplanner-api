@@ -16,6 +16,6 @@ public class EmployeeBlockDayService {
     }
 
     public boolean isEmployeeBlocked (Employee employee, LocalDate date) {
-        return repository.existsBayEmployeeAndDate(employee, date);
+        return repository.existsByEmployeeAndDate(employee, date);
     }
 }

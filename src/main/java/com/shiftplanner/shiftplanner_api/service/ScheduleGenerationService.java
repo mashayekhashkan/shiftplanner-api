@@ -58,7 +58,7 @@ public class ScheduleGenerationService {
             for (Availability.ShiftCode shift : shifts) {
                 int required = weeklyRequirementService.getRequiredHeadcount(store, date, shift);
 
-                List<Employee> candidates = employeeRepository.findByStoreAndAktiveTreu(store);
+                List<Employee> candidates = employeeRepository.findByStoreAndActiveTrue(store);
                 candidates = candidates.stream()
                         .filter(e -> availabilityService.isEmployeeAvailable(e, date, shift))
                         .sorted(Comparator.comparing(e -> assignedHours.getOrDefault(e.getId(), BigDecimal.ZERO)))
