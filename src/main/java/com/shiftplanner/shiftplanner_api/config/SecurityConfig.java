@@ -11,23 +11,12 @@ import org.springframework.security.web.header.writers.frameoptions.XFrameOption
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/", "/images/**", "/frontend/**", "/VAADIN/**",
-                                "/manifest.webmanifest", "/sw.js", "/offline.html"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
                 .csrf(csrf -> csrf.disable())
-                .headers(headers -> headers
-                        // Alternative moderne Methode für Frame-Optionen:
-                        .addHeaderWriter(new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN))
-                )
-                .formLogin(Customizer.withDefaults())
-                .httpBasic(Customizer.withDefaults());
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                );
 
         return http.build();
     }
