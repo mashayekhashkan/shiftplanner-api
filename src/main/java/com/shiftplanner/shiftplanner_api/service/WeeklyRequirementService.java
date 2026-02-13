@@ -4,6 +4,7 @@ import com.shiftplanner.shiftplanner_api.domain.Availability;
 import com.shiftplanner.shiftplanner_api.domain.Store;
 import com.shiftplanner.shiftplanner_api.domain.WeeklyRequirement;
 import com.shiftplanner.shiftplanner_api.repository.WeeklyRequirementRepository;
+import com.shiftplanner.shiftplanner_api.scheduling.ShiftSlot;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -44,6 +45,22 @@ public class WeeklyRequirementService {
 
     public boolean hasRequirement (Store store, LocalDate date, DayOfWeek dayOfWeek, Availability.ShiftCode shiftCode) {
         return repository.existsByStoreAndWeekStartAndDayOfWeekAndShiftCode(store, date, dayOfWeek, shiftCode);
+    }
+
+    public List<ShiftSlot> loadShiftSlots(Store store, LocalDate weekStart) {
+        LocalDate ws = weekStart.with(DayOfWeek.MONDAY);
+
+        List<WeeklyRequirement> reqs =
+                repository.findByStoreAndWeekStart(store, ws);
+
+        return reqs.stream()
+                .map(req -> new ShiftSlot(
+                        ws.plusDays(ws.getDayOfWeek().getValue() -1),
+                        req.getDayOfWeek(),
+                        req.getShiftCode(),
+                        req.getRequiredHeadcount()
+                ))
+                .toList();
     }
 
 }

@@ -29,7 +29,8 @@ public class WeeklyRequirement {
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false, length = 10)
     private DayOfWeek dayOfWeek;
-    @JoinColumn(name = "shift_code")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "shift_code", nullable = false, length = 20)
     private Availability.ShiftCode shiftCode;
     @Min((0))
     @Max(10)
