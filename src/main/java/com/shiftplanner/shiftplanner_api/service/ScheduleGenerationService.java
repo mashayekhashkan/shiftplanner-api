@@ -5,6 +5,8 @@ import com.shiftplanner.shiftplanner_api.repository.EmployeeBlockDayRepository;
 import com.shiftplanner.shiftplanner_api.repository.EmployeeRepository;
 import com.shiftplanner.shiftplanner_api.repository.ScheduleRepository;
 import com.shiftplanner.shiftplanner_api.repository.ShiftAssignmentRepository;
+import com.shiftplanner.shiftplanner_api.scheduling.SchedulingConstraints;
+import com.shiftplanner.shiftplanner_api.scheduling.ShiftSlot;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +40,7 @@ public class ScheduleGenerationService {
 
     @Transactional
     public Schedule generateWeek(Store store, LocalDate weekStart) {
+        SchedulingConstraints constraints = new SchedulingConstraints();
         LocalDate ws = weekStart.with(DayOfWeek.MONDAY);
 
         Schedule schedule = new Schedule();
@@ -48,54 +51,70 @@ public class ScheduleGenerationService {
 
         //TODO: später: old cleanup wenn re-generate
 
+        List<ShiftSlot> slots = weeklyRequirementService.loadShiftSlots(store, ws);
         Map<UUID, BigDecimal> assignedHours = new HashMap<>();
+        Map<UUID, Set<LocalDate>> assignedDates = new HashMap<>();
+        Map<UUID, Integer> earlyCount = new HashMap<>();
+        Map<UUID, Integer> lateCount  = new HashMap<>();
+        Map<UUID, Integer> satCount   = new HashMap<>();
 
-        for (int i = 0; i < 7; i++) {
-            LocalDate date = ws.plusDays(i);
+        for (ShiftSlot slot : slots) {
+            LocalDate date = slot.date();
+            Availability.ShiftCode shift = slot.shiftCode();
+            int required = slot.requiredHeadcount();
 
-            List<Availability.ShiftCode> shifts = shiftForDate(date);
+            List<Employee> candidates = employeeRepository.findByStoreAndActiveTrue(store);
+            candidates = candidates.stream()
+                    .filter(e -> constraints.canWork(e, date, shift))
+                    .filter(e -> availabilityService.isEmployeeAvailable(e, date, shift))
+                    .filter(e -> !assignedDates.getOrDefault(e.getId(), Set.of()).contains(date))
+                    .sorted(Comparator.comparing(e -> scoreCandidate(e, date, shift,assignedHours, earlyCount, lateCount, satCount)))
+                    .toList();
 
-            for (Availability.ShiftCode shift : shifts) {
-                int required = weeklyRequirementService.getRequiredHeadcount(store, date, shift);
+            int assignedCount = 0;
+            for (Employee e : candidates) {
+                if (assignedCount >= required) break;
 
-                List<Employee> candidates = employeeRepository.findByStoreAndActiveTrue(store);
-                candidates = candidates.stream()
-                        .filter(e -> availabilityService.isEmployeeAvailable(e, date, shift))
-                        .sorted(Comparator.comparing(e -> assignedHours.getOrDefault(e.getId(), BigDecimal.ZERO)))
-                        .toList();
+                BigDecimal shiftHours = hoursForShift(date, shift);
 
-                int assignedCount = 0;
-                for (Employee e : candidates) {
-                    if (assignedCount >= required) break;
-
-                    BigDecimal shiftHours = hoursForShift(date, shift);
-
-                    BigDecimal currant = assignedHours.getOrDefault(e.getId(), BigDecimal.ZERO);
-                    if (currant.add(shiftHours).compareTo(e.getWeeklyHoursTarget()) > 0) {
-                        continue;
-                    }
-
-                    ShiftAssignment a  = new ShiftAssignment();
-                    a.setSchedule(schedule);
-                    a.setDate(date);
-                    a.setEmployee(e);
-                    a.setShiftCode(shift);
-                    a.setAssignmentHours(shiftHours);
-                    shiftAssignmentRepository.save(a);
-
-                    assignedHours.put(e.getId(), currant.add(shiftHours));
-                    assignedCount++;
+                BigDecimal current = assignedHours.getOrDefault(e.getId(), BigDecimal.ZERO);
+                if (current.add(shiftHours).compareTo(e.getWeeklyHoursTarget()) > 0) {
+                    continue;
                 }
 
-                if (assignedCount > required) {
-                    scheduleIssueService.reportIssue(
-                            schedule,
-                            ScheduleIssue.IssueType.UNDERSTAFFED,
-                            "Not enough employees for " + date + " " + shift + " (required=" + required + ", assigned=" + assignedCount + ")",
-                            date,
-                            shift
-                    );
+                ShiftAssignment a = new ShiftAssignment();
+                a.setSchedule(schedule);
+                a.setDate(date);
+                a.setEmployee(e);
+                a.setShiftCode(shift);
+                a.setAssignmentHours(shiftHours);
+                shiftAssignmentRepository.save(a);
+
+                assignedHours.put(e.getId(), current.add(shiftHours));
+                assignedCount++;
+                assignedDates.computeIfAbsent(e.getId(), id -> new HashSet<>()).add(date);
+
+                if (shift == Availability.ShiftCode.EARLY) {
+                    earlyCount.put(e.getId(), earlyCount.getOrDefault(e.getId(),0) + 1);
                 }
+                if (shift == Availability.ShiftCode.LATE) {
+                    lateCount.put(e.getId(),lateCount.getOrDefault(e.getId(),0) + 1);
+                }
+                if (shift == Availability.ShiftCode.SAT_FULL) {
+                    satCount.put(e.getId(), satCount.getOrDefault(e.getId(), 0) + 1);
+                }
+            }
+
+            // Achtung: HIER muss es "< required" sein
+            if (assignedCount < required) {
+                scheduleIssueService.reportIssue(
+                        schedule,
+                        ScheduleIssue.IssueType.UNDERSTAFFED,
+                        "Not enough employees for " + date + " " + shift +
+                                " (required=" + required + ", assigned=" + assignedCount + ")",
+                        date,
+                        shift
+                );
             }
         }
         return schedule;
@@ -111,5 +130,34 @@ public class ScheduleGenerationService {
     private BigDecimal hoursForShift(LocalDate date, Availability.ShiftCode shift) {
         if (shift == Availability.ShiftCode.SAT_FULL) return new BigDecimal(10);
         return new BigDecimal(7);
+    }
+
+    private double scoreCandidate(
+            Employee e,
+            LocalDate date,
+            Availability.ShiftCode shift,
+            Map<UUID, BigDecimal> assignedHours,
+            Map<UUID, Integer> earlyCount,
+            Map<UUID, Integer> lateCount,
+            Map<UUID, Integer> satCount
+    ) {
+        UUID id = e.getId();
+
+        double hours = assignedHours.getOrDefault(id, BigDecimal.ZERO).doubleValue();
+
+        int early = earlyCount.getOrDefault(id, 0);
+        int late = lateCount.getOrDefault(id, 0);
+        int sat = satCount.getOrDefault(id, 0);
+
+        //Grundidee: wenige Stunde ist gut
+
+        double score = hours;
+
+        // Extra-Penalty: wenn jemand schon oft denselben Shift hatte
+        if (shift == Availability.ShiftCode.EARLY) score += early * 2.00;
+        if (shift == Availability.ShiftCode.LATE) score += late * 2.00;
+        if (shift == Availability.ShiftCode.SAT_FULL) score += sat * 3.00;
+
+        return score;
     }
 }
