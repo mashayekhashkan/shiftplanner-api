@@ -16,6 +16,7 @@ import java.util.UUID;
 public class ScheduleIssue {
 
     public enum IssueType {
+        NO_CANDIDATES,
         UNDERSTAFFED,
         HOURS_EXCEEDED,
         NO_AVAILABLE_EMPLOYEES,

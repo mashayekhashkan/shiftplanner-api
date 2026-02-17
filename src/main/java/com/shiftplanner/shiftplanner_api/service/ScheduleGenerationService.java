@@ -63,15 +63,29 @@ public class ScheduleGenerationService {
             Availability.ShiftCode shift = slot.shiftCode();
             int required = slot.requiredHeadcount();
 
-            List<Employee> candidates = employeeRepository.findByStoreAndActiveTrue(store);
-            candidates = candidates.stream()
-                    .filter(e -> constraints.canWork(e, date, shift))
+            List<Employee> all = employeeRepository.findByStoreAndActiveTrue(store);
+            List<Employee> available = all.stream()
                     .filter(e -> availabilityService.isEmployeeAvailable(e, date, shift))
-                    .filter(e -> !assignedDates.getOrDefault(e.getId(), Set.of()).contains(date))
-                    .sorted(Comparator.comparing(e -> scoreCandidate(e, date, shift,assignedHours, earlyCount, lateCount, satCount)))
                     .toList();
 
+            List<Employee> allowed = available.stream()
+                    .filter(e -> constraints.canWork(e, date, shift))
+                    .toList();
+
+            List<Employee> candidates = allowed.stream()
+                    .sorted(Comparator.comparing(e -> scoreCandidate(e, date, shift, assignedHours, earlyCount,lateCount,satCount)))
+                    .toList();
+
+//            List<Employee> candidates = employeeRepository.findByStoreAndActiveTrue(store);
+//            candidates = candidates.stream()
+//                    .filter(e -> constraints.canWork(e, date, shift))
+//                    .filter(e -> availabilityService.isEmployeeAvailable(e, date, shift))
+//                    .filter(e -> !assignedDates.getOrDefault(e.getId(), Set.of()).contains(date))
+//                    .sorted(Comparator.comparing(e -> scoreCandidate(e, date, shift,assignedHours, earlyCount, lateCount, satCount)))
+//                    .toList();
+
             int assignedCount = 0;
+            int blockedByHours = 0;
             for (Employee e : candidates) {
                 if (assignedCount >= required) break;
 
@@ -79,6 +93,7 @@ public class ScheduleGenerationService {
 
                 BigDecimal current = assignedHours.getOrDefault(e.getId(), BigDecimal.ZERO);
                 if (current.add(shiftHours).compareTo(e.getWeeklyHoursTarget()) > 0) {
+                    blockedByHours++;
                     continue;
                 }
 
@@ -105,9 +120,25 @@ public class ScheduleGenerationService {
                 }
             }
 
-            // Achtung: HIER muss es "< required" sein
+
             if (assignedCount < required) {
-                scheduleIssueService.reportIssue(
+                if (all.isEmpty()) {
+                    scheduleIssueService.reportIssue(schedule, ScheduleIssue.IssueType.NO_CANDIDATES,
+                            "No active employee in store for " + date + " " + shift,
+                            date, shift);
+                } else if (available.isEmpty()) {
+                    scheduleIssueService.reportIssue(schedule, ScheduleIssue.IssueType.NO_AVAILABLE_EMPLOYEES,
+                            "No available employee for " + date + " " + shift,
+                            date, shift);
+                } else if (allowed.isEmpty()) {
+                    scheduleIssueService.reportIssue(schedule, ScheduleIssue.IssueType.BLOCKED_DAY_CONFLICT,
+                            "All available employee blocked by constraints fror " + date + " " +shift,
+                            date, shift);
+                } else if (blockedByHours >= candidates.size()) {
+                    scheduleIssueService.reportIssue(schedule, ScheduleIssue.IssueType.HOURS_EXCEEDED,
+                            "All candidates would exceed weekly hour limits for " + date + " " + shift,
+                            date, shift);
+                }else scheduleIssueService.reportIssue(
                         schedule,
                         ScheduleIssue.IssueType.UNDERSTAFFED,
                         "Not enough employees for " + date + " " + shift +
