@@ -62,6 +62,6 @@ public class EmployeeBlockDay {
      * Es wird LocalDate verwendet (ohne Uhrzeit),
      * da nur das Kalenderdatum relevant ist.
      */
-    @Column(nullable = false)
+    @Column(name = "date_of_block", nullable = false)
     private LocalDate date;
 }
