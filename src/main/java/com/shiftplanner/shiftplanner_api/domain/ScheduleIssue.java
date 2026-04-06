@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(name = "schedule_issue")
 @Getter
 @Setter
-@NoArgsConstructor
+
 public class ScheduleIssue {
 
     public enum IssueType {

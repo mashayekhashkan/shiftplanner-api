@@ -24,7 +24,7 @@ public class ShiftAssignment {
     @JoinColumn(name = "schedule_id", nullable = false)
     private Schedule schedule;
 
-    @Column(nullable = false)
+    @Column(name = "assignment_date", nullable = false)
     private LocalDate date;
 
     @Enumerated(EnumType.STRING)

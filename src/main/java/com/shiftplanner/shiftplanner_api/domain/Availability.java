@@ -65,6 +65,7 @@ public class Availability {
      * Verwendet das java.time.DayOfWeek Enum.
      * Darf nicht null sein.
      */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DayOfWeek dayOfWeek;
 

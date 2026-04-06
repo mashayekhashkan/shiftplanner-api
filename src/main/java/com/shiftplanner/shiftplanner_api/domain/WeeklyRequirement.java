@@ -36,7 +36,4 @@ public class WeeklyRequirement {
     @Max(10)
     @Column(name = "required_headcount", nullable = false)
     private int requiredHeadcount;
-    public int getRequiredHeadcount() {
-        return requiredHeadcount;
-    }
 }
